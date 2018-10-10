@@ -1,0 +1,129 @@
+---
+ 
+ - hosts: localhost
+
+   vars_files: 
+     - clouds.yaml
+
+   tasks:
+    - name: create a private network
+    os_network:
+      cloud: "{{ cloud_name }}"
+      external: no
+      name: "{{ network_name }}"
+
+#  - name: Display all variables/facts known for a host
+#    debug:
+#      var: hostvars[inventory_hostname]
+#      name: "{{ cloud.tacc.auth.username }}-{{ cloud.tacc.auth.project_name }}-private"
+
+  - name: create security group for internal ports
+    os_security_group:
+      cloud: "{{ cloud_name }}"
+      state: present
+      name: "{{ sec_group_internal }}"
+      description: security group for internal access
+
+  - name: allow icmp internally
+    os_security_group_rule:
+      cloud: "{{ cloud_name }}"
+      security_group: "{{ sec_group_internal }}"
+      protocol: icmp
+      remote_ip_prefix: "{{ network_cidr }}"
+
+  - name: allow all tcp internally
+    os_security_group_rule:
+      cloud: "{{ cloud_name }}"
+      security_group: "{{ sec_group_internal }}"
+      protocol: tcp 
+      port_range_min: 1
+      port_range_max: 65535
+      remote_ip_prefix: "{{ network_cidr }}"
+
+  - name: allow all udp internally
+    os_security_group_rule:
+      cloud: "{{ cloud_name }}"
+      security_group: "{{ sec_group_internal }}"
+      protocol: udp 
+      port_range_min: 1
+      port_range_max: 65535
+      remote_ip_prefix: "{{ network_cidr }}"
+
+   - name: create public-facing security group
+    os_security_group:
+      cloud: "{{ cloud_name }}"
+      state: present
+      name: "{{ sec_group_global }}"
+      description: security group for global access
+
+  - name: allow icmp globally
+    os_security_group_rule:
+      cloud: "{{ cloud_name }}"
+      security_group: "{{ sec_group_global }}"
+      protocol: icmp
+      remote_ip_prefix: "0.0.0.0/0"
+
+  - name: allow ssh globally
+    os_security_group_rule:
+      cloud: "{{ cloud_name }}"
+      security_group: "{{ sec_group_global }}"
+      protocol: tcp
+      port_range_min: 22
+      port_range_max: 22
+      remote_ip_prefix: "0.0.0.0/0"
+
+  - name: allow https globally
+    os_security_group_rule:
+      cloud: "{{ cloud_name }}"
+      security_group: "{{ sec_group_global }}"
+      protocol: tcp
+      port_range_min: 443
+      port_range_max: 443
+      remote_ip_prefix: "0.0.0.0/0"
+
+  - name: create a subnet within private network
+    os_subnet:
+      state: present
+      network_name: "{{ network_name }}"
+      name: "{{ subnet_name }}"
+      cidr: "{{ network_cidr }}"
+      cloud: "{{ cloud_name }}"
+
+  - name: create a router on the private network
+    os_router:
+      cloud: "{{ cloud_name }}"
+      state: present
+      name: "{{ router_name }}"
+      network: public
+      interfaces:
+        - "{{ subnet_name }}"
+
+   - name: update slurm.conf for cloud configuration
+     blockinfile:
+       path: /etc/slurm/slurm.conf
+       insertbefore: "#COMPUTE NODES"
+       block: |
+         "#CLOUD CONFIGURATION"
+         PrivateData=cloud
+         ResumeProgram=/usr/local/sbin/slurm_resume.sh
+         SuspendProgram=/usr/local/sbin/slurm_suspend.sh
+         ResumeRate=0 
+         ResumeTimeout=900 
+         SuspendRate=0 
+         SuspendTime=60 
+         SuspendTimeout=30 
+
+   - name: insert cloud nodes into slurm.conf
+     blockinfile:
+       path: /etc/slurm/slurm.conf
+       insertafter: "#COMPUTE NODES"
+       block: |
+         NodeName={{ compute_glob_slurm }} State=CLOUD
+
+         #
+   - name: insert remote cloud partition into slurm.conf
+     blockinfile:
+       path: /etc/slurm/slurm.conf
+       insertafter: "#COMPUTE NODES"
+       block: |
+         PartitionName=remote-cloud  Nodes={{ compute_glob_slurm }} Default=YES MaxTime=INFINITE State=UP 

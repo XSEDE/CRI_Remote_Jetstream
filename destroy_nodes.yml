@@ -1,0 +1,29 @@
+---
+
+- hosts: localhost
+
+  vars_files:
+    - clouds.yaml
+
+  tasks:
+
+  - name: release the floating ip
+    os_floating_ip:
+      cloud: tacc
+      state: absent
+      purge: yes 
+      server: "{{ server_hostname }}"
+
+  - name: destroy the node
+    os_server:
+      timeout: 200 
+      state: absent
+      name: "{{ item.name }}"
+      cloud: tacc
+      key_name: jetstream_key
+      timeout: 200 
+      auto_ip: yes 
+      network: "{{ network_name }}"
+    loop: "{{ dcos_instance_list }}"
+   
+  - name: reset firewall rule for nfs

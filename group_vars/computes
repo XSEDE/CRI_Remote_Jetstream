@@ -1,0 +1,4 @@
+#NOTE: This depends on having pulled in the clouds.yaml file in your playbook!
+num_computes: 2
+compute_prefix: "{{ clouds.tacc.auth.username }}-compute
+compute_glob_slurm: "{{ compute-prefix }}-[0-{{ num_computes|int - 1 }}"

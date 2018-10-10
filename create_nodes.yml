@@ -1,0 +1,35 @@
+---
+
+- hosts: localhost
+
+  vars_files:
+    - clouds.yaml
+
+  tasks:
+  - name: build compute instances
+    os_server:
+      timeout: 200
+      state: present
+      name: "{{ item.name | quote }}"
+      cloud: "{{ cloud_name }}"
+      image: "{{ item.image }}"
+      key_name: "{{ JS_ssh_keyname }}"
+      timeout: 200
+      security_groups: "{{ sec_group_global }},{{ sec_group_internal }}"
+      flavor: "{{ item.size }}"
+      meta: "{{ item.meta }}"
+      auto_ip: "{{ item.auto_ip }}"
+      network: "{{ network_name }}"
+    loop: "{{ compute_instance_list }}"
+
+#I don't like this...
+  - name: assign a floating ip to each compute 
+    os_floating_ip:
+      cloud: "{{ cloud_name }}"
+      server: "{{ item.name }}"
+      network: public
+    loop: "{{ compute_instance_list }}"
+
+  - name: set firewall rule for nfs
+
+  - name: set compute node ip in slurm
