@@ -102,8 +102,9 @@
     blockinfile:
       path: /etc/slurm/slurm.conf
       insertbefore: "#COMPUTE NODES"
+      marker: "#ANSIBLE MANAGED CLOUD CONFIGURATION"
       block: |
-        \#CLOUD CONFIGURATION
+        #CLOUD CONFIGURATION
         PrivateData=cloud
         ResumeProgram=/usr/local/sbin/slurm_resume.sh
         SuspendProgram=/usr/local/sbin/slurm_suspend.sh
@@ -111,21 +112,21 @@
         ResumeTimeout=900 
         SuspendRate=0 
         SuspendTime=60 
-        SuspendTimeout=30 
+        SuspendTimeout=30
 
 
   - name: insert cloud nodes into slurm.conf
     blockinfile:
       path: /etc/slurm/slurm.conf
       insertafter: "#COMPUTE NODES"
+      marker: "#ANSIBLE MANAGED COMPUTE NODE CONFIGURATION"
       block: |
         NodeName={{ compute_glob_slurm }} State=CLOUD
 
-        #
-        #
   - name: insert remote cloud partition into slurm.conf
     blockinfile:
       path: /etc/slurm/slurm.conf
       insertafter: "#PARTITIONS"
+      marker: "#ANSIBLE MANAGED PARTITION CONFIGURATION"
       block: |
         PartitionName=remote-cloud  Nodes={{ compute_glob_slurm }} Default=YES MaxTime=INFINITE State=UP 
