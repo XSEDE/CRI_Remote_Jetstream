@@ -1,0 +1,24 @@
+internal_prefix: "{{ clouds.tacc.auth.username }}-{{ clouds.tacc.auth.project_name }}"
+
+cloud_name: "tacc"
+
+#Network definitions
+network_name: "{{ internal_prefix }}-network"
+network_cidr: '10.0.0.0/24'
+subnet_name: "{{ internal_prefix }}-private-subnet"
+router_name: "{{ internal_prefix }}-router"
+
+#security groups
+sec_group_global: "{{ internal_prefix }}-global"
+sec_group_internal: "{{ internal_prefix }}-internal"
+
+default_image: "JS-API-Featured-CentOS6-Sep-18-2018"
+
+JS_ssh_keyname: "jetstream_key"
+#NOTE: This depends on having pulled in the clouds.yaml file in your playbook!
+#
+num_computes: 2
+
+compute_prefix: "{{ clouds.tacc.auth.username }}-compute"
+
+compute_glob_slurm: "{{ compute_prefix }}-[0-{{ num_computes|int - 1 }}"
