@@ -6,6 +6,21 @@
      - clouds.yaml
 
   tasks:
+
+  - name: generate slurm user ssh key
+    shell: ssh-keygen -b 2048 -t rsa -f /etc/slurm/.ssh/id_rsa -q -N ""
+    args:
+      creates: /etc/slurm/.ssh/id_rsa
+    become: yes 
+    become_user: slurm
+
+  - name: add slurm user key to openstack
+    os_keypair:
+      cloud: "{{ cloud_name }}"
+      state: present
+      name: "{{ JS_ssh_keyname }}"
+      public_key_file: /etc/slurm/.ssh/id_rsa.pub
+
   - name: create a private network
     os_network:
       cloud: "{{ cloud_name }}"
