@@ -102,7 +102,8 @@
     blockinfile:
       path: /etc/slurm/slurm.conf
       insertbefore: "#COMPUTE NODES"
-      marker: "#ANSIBLE MANAGED CLOUD CONFIGURATION"
+      marker: "#{mark} MANAGED CLOUD CONFIGURATION"
+      state: present
       block: |
         #CLOUD CONFIGURATION
         PrivateData=cloud
@@ -119,7 +120,8 @@
     blockinfile:
       path: /etc/slurm/slurm.conf
       insertafter: "#COMPUTE NODES"
-      marker: "#ANSIBLE MANAGED COMPUTE NODE CONFIGURATION"
+      marker: "#{mark} MANAGED COMPUTE NODE CONFIGURATION"
+      state: present
       block: |
         NodeName={{ compute_glob_slurm }} State=CLOUD
 
@@ -127,6 +129,7 @@
     blockinfile:
       path: /etc/slurm/slurm.conf
       insertafter: "#PARTITIONS"
-      marker: "#ANSIBLE MANAGED PARTITION CONFIGURATION"
+      marker: "#{mark} MANAGED PARTITION CONFIGURATION"
+      state: present
       block: |
         PartitionName=remote-cloud  Nodes={{ compute_glob_slurm }} Default=YES MaxTime=INFINITE State=UP 
