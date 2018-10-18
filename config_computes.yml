@@ -5,7 +5,7 @@
 #  Primarily for testing the public-ip NFS mounts, etc.
 #
 #
-- hosts: meta-compute_*
+- hosts: computes
   tasks:
 
   - name: Get the slurmctld uid
@@ -120,7 +120,7 @@
   - name: import /export on compute nodes
     lineinfile:
       dest: /etc/fstab
-      line:  "{{ headnode_public_ip }}:/export  /export  nfs  defaults,nfsvers=4.0 0 0"
+      line:  "centos@localhost:/export /export fuse.sshfs _netdev,user,idmap=user,transform_symlinks,identityfile=/home/centos/.ssh/id_rsa,port=19999,allow_other,default_permissions,uid=1000,gid=1000 0 0"
       state: present
  
   - name: add local users to compute node
