@@ -12,9 +12,13 @@ router_name: "{{ internal_prefix }}-router"
 sec_group_global: "{{ internal_prefix }}-global"
 sec_group_internal: "{{ internal_prefix }}-internal"
 
-default_image: "JS-API-Featured-CentOS6-Sep-18-2018"
+compute_image: "JS-API-Featured-CentOS6-Sep-18-2018"
 
-JS_ssh_keyname: "jetstream_key"
+compute_size: "m1.small"
+
+compute_meta: { compute: "{{ clouds.tacc.auth.username }}" }
+
+JS_ssh_keyname: "{{ internal_prefix }}-elastic-slurm"
 #NOTE: This depends on having pulled in the clouds.yaml file in your playbook!
 #
 num_computes: 2
