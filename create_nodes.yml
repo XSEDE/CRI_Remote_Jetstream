@@ -6,30 +6,59 @@
     - clouds.yaml
 
   tasks:
+
+  - debug:
+      var: compute_instance_list
+
+  #- fail:
+
   - name: build compute instances
     os_server:
-      timeout: 200
       state: present
-      name: "{{ item.name | quote }}"
+      name: "{{ item }}"
       cloud: "{{ cloud_name }}"
-      image: "{{ item.image }}"
+      image: "{{ compute_image }}"
       key_name: "{{ JS_ssh_keyname }}"
       timeout: 200
       security_groups: "{{ sec_group_global }},{{ sec_group_internal }}"
-      flavor: "{{ item.size }}"
-      meta: "{{ item.meta }}"
-      auto_ip: "{{ item.auto_ip }}"
+      flavor: "{{ compute_size }}"
+      meta: "{{ compute_meta }}"
+      auto_ip: "yes"   # This seems... bad. But necessary for non-JS access :(
       network: "{{ network_name }}"
+    retries: 3
     loop: "{{ compute_instance_list }}"
+    register: "os_hosts"
+
+  - debug:
+      var: os_hosts
 
 #I don't like this...
-  - name: assign a floating ip to each compute 
-    os_floating_ip:
-      cloud: "{{ cloud_name }}"
-      server: "{{ item.name }}"
-      network: public
+#  - name: assign a floating ip to each compute 
+#    os_floating_ip:
+#      cloud: "{{ cloud_name }}"
+#      server: "{{ item }}"
+#      network: public
+#    loop: "{{ compute_instance_list }}"
+
+  #- name: set compute node ip in slurm
+  #
+  - name: add hosts to inventory
+    add_host:
+      name: "{{ item['openstack']['name'] }}"
+      groups: "computes"
+      ansible_host: "{{ item.openstack.accessIPv4 }}"
+      ansible_user: "centos"
+      ansible_ssh_private_key_file: "/etc/slurm/.ssh/id_rsa"
+      ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+    with_items: "{{ os_hosts.results }}"
+
+  - name: add hosts to etc/hosts  - TEST
+    lineinfile:
+      line: "{{ item.openstack.accessIPv4 }} {{ item['openstack']['name'] }}"
+      state: present
+      path: /etc/hosts
+    with_items: "{{ os_hosts.results }}"
+
+  - name: create background ssh tunnel
+    shell:  "sudo ssh -o StrictHostKeyChecking=no -i /etc/slurm/.ssh/id_rsa -N -R 19999:localhost:22 centos@{{ item }} &"
     loop: "{{ compute_instance_list }}"
-
-  - name: set firewall rule for nfs
-
-  - name: set compute node ip in slurm

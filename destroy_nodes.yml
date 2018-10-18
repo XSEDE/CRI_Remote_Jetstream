@@ -12,18 +12,25 @@
       cloud: tacc
       state: absent
       purge: yes 
-      server: "{{ server_hostname }}"
+      server: "{{ item }}"
+    loop: "{{ compute_instance_list }}"
 
   - name: destroy the node
     os_server:
-      timeout: 200 
       state: absent
-      name: "{{ item.name }}"
+      name: "{{ item }}"
       cloud: tacc
       key_name: jetstream_key
       timeout: 200 
       auto_ip: yes 
       network: "{{ network_name }}"
-    loop: "{{ dcos_instance_list }}"
-   
-  - name: reset firewall rule for nfs
+    loop: "{{ compute_instance_list }}"
+    register: "os_hosts"
+    delay: 5
+
+  - name: remove hosts from etc/hosts  - TEST
+    lineinfile:
+      line: "{{ item.openstack.accessIPv4 }} {{ item['openstack']['name'] }}"
+      state: absent
+      path: /etc/hosts
+    with_items: "{{ os_hosts.results }}"
