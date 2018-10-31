@@ -12,7 +12,7 @@ router_name: "{{ internal_prefix }}-router"
 sec_group_global: "{{ internal_prefix }}-global"
 sec_group_internal: "{{ internal_prefix }}-internal"
 
-compute_image: "JS-API-Featured-CentOS6-Sep-18-2018"
+compute_image: "JS-API-Featured-CentOS7-Sep-18-2018"
 
 compute_size: "m1.small"
 
@@ -25,4 +25,4 @@ num_computes: 2
 
 compute_prefix: "{{ clouds.tacc.auth.username }}-compute"
 
-compute_glob_slurm: "{{ compute_prefix }}-[0-{{ num_computes|int - 1 }}"
+compute_glob_slurm: "{{ compute_prefix }}-[0-{{ num_computes|int - 1 }}]"
