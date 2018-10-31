@@ -21,6 +21,32 @@
       name: "{{ JS_ssh_keyname }}"
       public_key_file: /etc/slurm/.ssh/id_rsa.pub
 
+  - name: add proper entry for compute nodes in /etc/ansible/ssh.cfg
+    blockinfile:
+      path: /etc/ansible/ssh.cfg
+      insertafter: EOF
+      marker: "#{mark} MANAGED COMPUTE INSTANCE SSH CONFIG" 
+      create: yes
+      state: present
+      block: |
+       Host 149.165.*
+         User centos
+         StrictHostKeyChecking no
+         BatchMode yes
+         UserKnownHostsFile=/dev/null
+         IdentityFile /etc/slurm/.ssh/id_rsa
+
+  - name: allow slurm to write to /home/centos/.ssh/authorized_keys
+    shell: setfacl -m u:slurm:rw /home/centos && setfactl -m u:slurm:rwx /home/centos/.ssh/authorized_keys
+
+  - name: allow slurm to write to etc/hosts
+    shell: setfacl -m u:slurm:rw /etc/hosts && setfactl -m u:slurm:rwx /etc
+#    acl:
+#      path: /etc/hosts
+#      permissions: rw
+#      etype: user
+#      entity: slurm
+
   - name: create a private network
     os_network:
       cloud: "{{ cloud_name }}"
@@ -122,14 +148,31 @@
       block: |
         #CLOUD CONFIGURATION
         PrivateData=cloud
-        ResumeProgram=/usr/local/sbin/slurm_resume.sh
-        SuspendProgram=/usr/local/sbin/slurm_suspend.sh
+        ResumeProgram=/usr/local/sbin/slurm_resume_ansible.sh
+        SuspendProgram=/usr/local/sbin/slurm_suspend_ansible.sh
         ResumeRate=0 
         ResumeTimeout=900 
         SuspendRate=0 
         SuspendTime=60 
         SuspendTimeout=30
 
+  - name: copy files into place for slurm suspend and resume
+    copy:
+      dest: "{{ item.path }}"
+      src: "{{ item.name }}"
+      owner: "slurm"
+      group: "slurm"
+      mode: "{{ item.mode }}"
+    loop:
+      - { name: slurm_resume_ansible.sh, path: /usr/local/sbin/, mode: '0744' }
+      - { name: slurm_prolog.sh, path: /usr/local/sbin/, mode: '0744' }
+      - { name: slurm_suspend_ansible.sh, path: /usr/local/sbin/, mode: '0744' }
+      - { name: group_vars, path: /etc/slurm/, mode: '0744' }
+      - { name: clouds.yaml, path: /etc/slurm/, mode: '0600' }
+      - { name: computes.yml, path: /etc/slurm/, mode: '0644' }
+      - { name: create_nodes.yml, path: /etc/slurm/, mode: '0644' }
+      - { name: destroy_nodes.yml, path: /etc/slurm/, mode: '0644' }
+      - { name: config_computes.yml, path: /etc/slurm/, mode: '0644' }
 
   - name: insert cloud nodes into slurm.conf
     blockinfile:
@@ -148,3 +191,8 @@
       state: present
       block: |
         PartitionName=remote-cloud  Nodes={{ compute_glob_slurm }} Default=YES MaxTime=INFINITE State=UP 
+  - name: restart slurmctld
+    service:
+      name: slurmctld
+      state: restarted
+      enabled: yes
