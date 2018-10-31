@@ -14,6 +14,10 @@
       purge: yes 
       server: "{{ item }}"
     loop: "{{ compute_instance_list }}"
+    register: "os_hosts"
+
+  - debug:
+      var: os_hosts
 
   - name: destroy the node
     os_server:
@@ -25,12 +29,19 @@
       auto_ip: yes 
       network: "{{ network_name }}"
     loop: "{{ compute_instance_list }}"
-    register: "os_hosts"
     delay: 5
+    retries: 3
+
+#    shell: sudo kill -s 9 $(ps aux | grep ssh | awk '/{{ item }}/ {print $2}' | tr '\n' ' ')
+
+  - name: kill the ssh tunnel
+    shell: kill -s 9 $(ps aux | grep ssh | awk '/{{ item }}/ {print $2}' | tr '\n' ' ')
+    loop: "{{ compute_instance_list }}"
+    ignore_errors: yes
 
   - name: remove hosts from etc/hosts  - TEST
     lineinfile:
-      line: "{{ item.openstack.accessIPv4 }} {{ item['openstack']['name'] }}"
+      regexp: "{{ item }}"
       state: absent
       path: /etc/hosts
-    with_items: "{{ os_hosts.results }}"
+    loop: "{{ compute_instance_list }}"
