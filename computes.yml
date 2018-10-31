@@ -1,3 +1,30 @@
 ---
   - include: create_nodes.yml
+
+  - hosts: localhost
+    become: False
+    tasks:
+
+    - name: create add_users.sh
+      shell: echo "#!/bin/bash" > /tmp/add_users.sh
+      args:
+        creates: /tmp/add_users.sh
+
+    - name: populate add_users.sh
+      shell: cat /etc/passwd | awk -F':' '$4 >= 1001 && $4 < 65000 {print "useradd -M -u", $3, $1}' >> /tmp/add_users.sh
+
+    - pause:
+        seconds: 10
+
   - include: config_computes.yml
+
+  - hosts: localhost
+    become: False
+    tasks:
+    
+    - name: remove add_users.sh
+      file: path=/tmp/add_users.sh state=absent
+
+#    - name: update slurm with node ip
+#      shell: scontrol update nodename={{ item.name }} ipaddr={{ item.ip}}
+#      loop: "{{computes}}"
